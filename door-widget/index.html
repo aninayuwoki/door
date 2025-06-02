@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Door Widget</title>
 <link rel="stylesheet" href="styles/style.css">
+<link rel="manifest" href="manifest.json"> <!-- Added manifest link -->
 </head>
 <body>
     <div id="config-container">
@@ -19,16 +20,27 @@
     </div>
 
 <!-- Botón para presionar la puerta -->
-<button id="door-button">Tocar la Puerta</button>
-
+<!-- Removed duplicate button to fix HTML validation and potential JS issues -->
   <div class="widget-container">
-    <button id="door-button">Door</button>
+    <button id="door-button">Tocar la Puerta</button> 
   </div>
 
-  <script src="scripts/utils.js"></script>
-  <script src="scripts/geolocation.js"></script>
-  <script src="scripts/notifications.js"></script>
   <script src="/socket.io/socket.io.js"></script>
+  <script src="scripts/utils.js"></script> <!-- utils.js loaded before main.js -->
   <script src="scripts/main.js"></script>
+  <!-- <script src="scripts/geolocation.js"></script> Removed, functionality in main.js -->
+  <!-- <script src="scripts/notifications.js"></script> Removed, functionality in utils.js -->
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(registration => {
+          console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

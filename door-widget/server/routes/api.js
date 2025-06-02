@@ -1,23 +1,6 @@
 const express = require('express');
 const router = express.Router();
 
-// routes/api.js
-
-
-
-router.post('/door-press', (req, res) => {
-  console.log('Alguien presionó Door');
-  const { userId } = req.body;
-  res.json({
-    message: 'Notificación enviada',
-    closestUser: userId,
-    closestUserMessage: "¡Ya llegué!"
-  });
-});
-
-module.exports = router;
-
-
 // Simulación de base de datos en memoria
 const users = new Map(); // key: userId, value: { location, code, message }
 
@@ -44,46 +27,78 @@ function calculateDistance(loc1, loc2) {
 router.post('/register', (req, res) => {
   const { userId, code, location, message } = req.body;
   if (!userId || !code || !location) {
-    return res.status(400).json({ error: "Faltan campos" });
+    return res.status(400).json({ error: "Faltan campos: userId, code y location son requeridos." });
+  }
+  if (typeof location.latitude !== 'number' || typeof location.longitude !== 'number') {
+    return res.status(400).json({ error: "Formato de location inválido. Se requiere { latitude: number, longitude: number }." });
   }
   users.set(userId, { code, location, message: message || "¡Ya llegué!" });
-  res.json({ status: "ok" });
+  console.log(`Usuario ${userId} registrado/actualizado con código ${code} y ubicación ${JSON.stringify(location)}.`);
+  res.json({ status: "ok", message: `Usuario ${userId} registrado/actualizado.` });
 });
 
 // Cuando alguien presiona el botón Door
 router.post('/door-press', (req, res) => {
-  console.log('Alguien presionó Door');
   const { userId } = req.body;
-  // Aquí puedes hacer la lógica real
-  res.json({ message: 'Notificación enviada', closestUser: userId, closestUserMessage: "¡Ya llegué!" });
 
-
+  if (!userId) {
+    return res.status(400).json({ error: "userId es requerido." });
+  }
 
   const userData = users.get(userId);
+
+  if (!userData) {
+    return res.status(404).json({ error: `Usuario ${userId} no encontrado. Asegúrate de que el usuario esté registrado (llamada a /api/register) y que el ID sea correcto.` });
+  }
+  if (!userData.code || !userData.location || typeof userData.location.latitude !== 'number' || typeof userData.location.longitude !== 'number') {
+    return res.status(400).json({ error: `Datos incompletos o inválidos (falta code o location válida) para el usuario ${userId}. El usuario debe registrarse con code y location { latitude, longitude }.` });
+  }
+  
+  console.log(`'${userId}' tocó la puerta (procesado por la ruta avanzada en api.js)`);
+
+  // Emit event through Socket.IO to all clients
+  const io = req.app.get('socketio');
+  if (io) {
+    io.emit('door-pressed', { userId }); // Notifica a todos que alguien tocó
+  } else {
+    console.error("Socket.IO no está disponible en req.app.get('socketio')");
+    // Consider how to handle this error; maybe the response should indicate a partial failure.
+  }
+
   const groupCode = userData.code;
 
-  // Filtrar los usuarios vinculados a ese código
+  // Filtrar los usuarios vinculados al mismo código, excluyendo al que tocó y asegurando que tengan ubicación válida
   const groupUsers = Array.from(users.entries())
-    .filter(([_, u]) => u.code === groupCode && u.location)
+    .filter(([key, u]) => 
+      key !== userId && 
+      u.code === groupCode && 
+      u.location && 
+      typeof u.location.latitude === 'number' && 
+      typeof u.location.longitude === 'number'
+    )
     .map(([id, u]) => ({ userId: id, ...u }));
 
-  // Calcular distancias
   let closestUser = null;
   let minDistance = Infinity;
-  for (const u of groupUsers) {
-    if (u.userId === userId) continue;
-    const d = calculateDistance(userData.location, u.location);
-    if (d < minDistance) {
-      minDistance = d;
-      closestUser = u;
+
+  if (groupUsers.length > 0) {
+    for (const u of groupUsers) {
+      const d = calculateDistance(userData.location, u.location);
+      if (d < minDistance) {
+        minDistance = d;
+        closestUser = u;
+      }
     }
   }
 
-  // Simulamos notificaciones: devolvemos la lista de usuarios que recibirían la notificación
   res.json({
-    notifiedUsers: groupUsers.map(u => u.userId),
+    message: `El evento de puerta para '${userId}' fue procesado.`,
+    notifiedUsers: groupUsers.map(u => u.userId), 
     closestUser: closestUser ? closestUser.userId : null,
-    closestUserMessage: closestUser ? closestUser.message : null
+    closestUserMessage: closestUser ? (closestUser.message || `¡${closestUser.userId} (el más cercano) está aquí!`) : null,
+    debug: {
+      distance: closestUser ? minDistance : null
+    }
   });
 });
 

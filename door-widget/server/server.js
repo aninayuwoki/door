@@ -4,6 +4,9 @@ const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 
+// Import API routes
+const apiRoutes = require('./routes/api');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
@@ -14,7 +17,11 @@ app.use(cors());
 app.use(bodyParser.json());
 app.use(express.static('public')); // donde están tus archivos estáticos
 
-// Ruta para "door-press"
+// Mount API routes
+app.use('/api', apiRoutes);
+
+// Ruta para "door-press" - MOVED TO api.js, this one is now commented out
+/*
 app.post('/api/door-press', (req, res) => {
   const { userId } = req.body;
 
@@ -26,6 +33,10 @@ app.post('/api/door-press', (req, res) => {
 
   res.json({ success: true });
 });
+*/
+
+// Make io accessible to our router
+app.set('socketio', io);
 
 server.listen(3000, () => {
   console.log("Servidor escuchando en puerto 3000");
