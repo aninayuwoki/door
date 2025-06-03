@@ -20,5 +20,10 @@ body {
   border: none;
   font-size: 1.2em;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#door-button:active {
+  background-color: #e0e000; /* Slightly darker yellow */
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2); /* Smaller shadow for pressed effect */
 }

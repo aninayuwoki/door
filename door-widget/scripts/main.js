@@ -4,7 +4,7 @@
  * Reproduce el sonido de la puerta.
  */
 function playSound() {
-  const audio = new Audio('/assets/door-sound.mp3');
+  const audio = new Audio("/assets/door-sound.mp3");
   audio.play().catch((error) => {
     console.error("Error reproduciendo el sonido:", error);
   });
@@ -17,7 +17,7 @@ function playSound() {
 async function getCurrentLocation() {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject('La geolocalización no está disponible');
+      reject("La geolocalización no está disponible");
       return;
     }
 
@@ -25,14 +25,14 @@ async function getCurrentLocation() {
       (position) => {
         resolve({
           latitude: position.coords.latitude,
-          longitude: position.coords.longitude
+          longitude: position.coords.longitude,
         });
       },
       (error) => {
         console.error("Error obteniendo la ubicación:", error);
         reject(error);
       },
-      { enableHighAccuracy: true }
+      { enableHighAccuracy: true },
     );
   });
 }
@@ -57,26 +57,30 @@ function sendNotification(title, body) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  const doorButton = document.getElementById('door-button');
+document.addEventListener("DOMContentLoaded", () => {
+  const doorButton = document.getElementById("door-button");
 
   if (!doorButton) {
     console.error("No se encontró el botón con id 'door-button'");
     return;
   }
 
-  doorButton.addEventListener('click', async () => {
+  doorButton.addEventListener("click", async () => {
     console.log("Botón presionado");
     playSound();
 
     try {
       // Verificar datos en localStorage
-      const userId = localStorage.getItem('userId');
-      const code = localStorage.getItem('code');
+      const userId = localStorage.getItem("userId");
+      const code = localStorage.getItem("code");
 
       if (!userId || !code) {
-        console.warn("Faltan datos en localStorage: userId o code no están definidos.");
-        alert("Por favor, ingresa tus datos de usuario antes de usar el botón.");
+        console.warn(
+          "Faltan datos en localStorage: userId o code no están definidos.",
+        );
+        alert(
+          "Por favor, ingresa tus datos de usuario antes de usar el botón.",
+        );
         return;
       }
 
@@ -84,10 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log("Ubicación obtenida:", location);
 
       // Registrar ubicación
-      const registerResponse = await fetch('http://localhost:3000/api/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, code, location })
+      const registerResponse = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, code, location }),
       });
 
       if (!registerResponse.ok) {
@@ -98,10 +102,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // Presionar Door
-      const doorResponse = await fetch('http://localhost:3000/api/door-press', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
+      const doorResponse = await fetch("/api/door-press", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
       });
 
       if (!doorResponse.ok) {
@@ -114,14 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await doorResponse.json();
       console.log("Respuesta de /api/door-press:", data);
 
-      // Notificar a todos
-      sendNotification("Door", "¡Alguien tocó la puerta!");
-
-      // Notificar al más cercano
-      if (data.closestUser === userId) {
-        sendNotification("Door Cercano", data.closestUserMessage || "¡Ya llegué!");
-      }
-
+      // Logic for data.closestUser removed as it's no longer provided by the server.
     } catch (error) {
       console.error("Error general:", error);
       alert("Ocurrió un error. Revisa la consola para más detalles.");
@@ -129,25 +126,25 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-document.getElementById('save-config-button').addEventListener('click', () => {
-  const userId = document.getElementById('userId-input').value.trim();
-  const code = document.getElementById('code-input').value.trim();
+document.getElementById("save-config-button").addEventListener("click", () => {
+  const userId = document.getElementById("userId-input").value.trim();
+  const code = document.getElementById("code-input").value.trim();
 
   if (!userId || !code) {
     alert("Por favor, completa ambos campos antes de guardar.");
     return;
   }
 
-  localStorage.setItem('userId', userId);
-  localStorage.setItem('code', code);
+  localStorage.setItem("userId", userId);
+  localStorage.setItem("code", code);
   alert("Datos guardados correctamente en localStorage.");
 });
 
 // Conecta el cliente a Socket.IO
-const socket = io('http://localhost:3000'); // o la URL de tu servidor
+const socket = io(); // Se conecta al host que sirve la página por defecto
 
 // Escucha el evento 'door-pressed'
-socket.on('door-pressed', (data) => {
+socket.on("door-pressed", (data) => {
   console.log("¡Alguien tocó la puerta!", data);
   // Puedes notificar en la UI
   sendNotification("Door Widget", `El usuario ${data.userId} tocó la puerta`);
